@@ -24,8 +24,8 @@ export class ɵMessageClient implements MessageClient { // tslint:disable-line:c
 
   public publish<T = any>(topic: string, message?: T, options?: PublishOptions): Promise<void> {
     assertTopic(topic, {allowWildcardSegments: false});
-    const headers = new Map(options && options.headers);
-    const topicMessage: TopicMessage = {topic, retain: Defined.orElse(options && options.retain, false), headers: new Map(headers)};
+    const headers = new Map(options?.headers || []);
+    const topicMessage: TopicMessage = {topic, retain: Defined.orElse(options && options.retain, false), headers};
     setBodyIfDefined(topicMessage, message);
     return this._brokerGateway.postMessage(MessagingChannel.Topic, topicMessage);
   }
@@ -36,9 +36,9 @@ export class ɵMessageClient implements MessageClient { // tslint:disable-line:c
     // When sending a request, the platform adds various headers to the message. Therefore, to support multiple subscriptions
     // to the returned Observable, each subscription must have its individual message instance and headers map.
     // In addition, the headers are copied to prevent modifications before the effective subscription.
-    const headers = new Map(options && options.headers);
+    const headers = new Map(options?.headers || []);
     return defer(() => {
-      const topicMessage: TopicMessage = {topic, retain: false, headers: new Map(headers)};
+      const topicMessage: TopicMessage = {topic, retain: false, headers};
       setBodyIfDefined(topicMessage, request);
       return this._brokerGateway.requestReply$(MessagingChannel.Topic, topicMessage).pipe(throwOnErrorStatus());
     });
@@ -50,7 +50,7 @@ export class ɵMessageClient implements MessageClient { // tslint:disable-line:c
   }
 
   public onMessage<IN = any, OUT = any>(topic: string, callback: (message: TopicMessage<IN>) => Observable<OUT> | Promise<OUT> | OUT | void): Subscription {
-    return new MessageHandler(Beans.get(MessageClient).observe$<IN>(topic), callback).subscription;
+    return new MessageHandler<TopicMessage<IN>, OUT>(Beans.get(MessageClient).observe$<IN>(topic), callback).subscription;
   }
 
   public subscriberCount$(topic: string): Observable<number> {

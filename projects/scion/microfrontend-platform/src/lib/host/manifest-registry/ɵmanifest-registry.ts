@@ -15,7 +15,7 @@ import { ManifestObjectFilter, ManifestObjectStore } from './manifest-object-sto
 import { defer, merge, of, Subject } from 'rxjs';
 import { distinctUntilChanged, expand, mergeMapTo, take, takeUntil } from 'rxjs/operators';
 import { PlatformMessageClient } from '../platform-message-client';
-import { Intent, MessageHeaders, ResponseStatusCodes, TopicMessage } from '../../messaging.model';
+import { Intent, MessageHeaders, ResponseStatusCodes } from '../../messaging.model';
 import { takeUntilUnsubscribe } from '../../client/messaging/message-client';
 import { ApplicationRegistry } from '../application-registry';
 import { runSafe } from '../../safe-runner';
@@ -77,7 +77,7 @@ export class ɵManifestRegistry implements ManifestRegistry, PreDestroy { // tsl
       return true;
     }
 
-    if (capability.metadata.appSymbolicName === appSymbolicName) {
+    if (capability.metadata?.appSymbolicName === appSymbolicName) {
       return true;
     }
 
@@ -93,11 +93,11 @@ export class ɵManifestRegistry implements ManifestRegistry, PreDestroy { // tsl
     return (
       Beans.get(ApplicationRegistry).isScopeCheckDisabled(appSymbolicName) ||
       !capability.private ||
-      capability.metadata.appSymbolicName === appSymbolicName
+      capability.metadata?.appSymbolicName === appSymbolicName
     );
   }
 
-  public registerCapability(capability: Capability, appSymbolicName: string): string | undefined {
+  public registerCapability(capability: Capability | undefined, appSymbolicName: string): string | undefined {
     if (!capability) {
       throw Error('[CapabilityRegisterError] Missing required capability.');
     }
@@ -120,14 +120,14 @@ export class ɵManifestRegistry implements ManifestRegistry, PreDestroy { // tsl
     // Register the capability.
     this._capabilityStore.add(registeredCapability);
 
-    return registeredCapability.metadata.id;
+    return registeredCapability.metadata?.id;
   }
 
   private unregisterCapabilities(appSymbolicName: string, filter: ManifestObjectFilter): void {
     this._capabilityStore.remove({...filter, appSymbolicName});
   }
 
-  public registerIntention(intention: Intention, appSymbolicName: string): string | undefined {
+  public registerIntention(intention: Intention | undefined, appSymbolicName: string): string | undefined {
     if (!intention) {
       throw Error(`[IntentionRegisterError] Missing required intention.`);
     }
@@ -141,7 +141,7 @@ export class ɵManifestRegistry implements ManifestRegistry, PreDestroy { // tsl
     };
 
     this._intentionStore.add(registeredIntention);
-    return registeredIntention.metadata.id;
+    return registeredIntention.metadata!.id;
   }
 
   private unregisterIntention(appSymbolicName: string, filter: ManifestObjectFilter): void {
@@ -149,9 +149,9 @@ export class ɵManifestRegistry implements ManifestRegistry, PreDestroy { // tsl
   }
 
   private installCapabilityRegisterRequestHandler(): void {
-    Beans.get(PlatformMessageClient).observe$(ManifestRegistryTopics.RegisterCapability)
+    Beans.get(PlatformMessageClient).observe$<Capability>(ManifestRegistryTopics.RegisterCapability)
       .pipe(takeUntil(this._destroy$))
-      .subscribe((request: TopicMessage<Capability>) => runSafe(() => {
+      .subscribe(request => runSafe(() => {
         const replyTo = request.headers.get(MessageHeaders.ReplyTo);
         const capability = request.body;
         const appSymbolicName = request.headers.get(MessageHeaders.AppSymbolicName);
@@ -167,9 +167,9 @@ export class ɵManifestRegistry implements ManifestRegistry, PreDestroy { // tsl
   }
 
   private installCapabilityUnregisterRequestHandler(): void {
-    Beans.get(PlatformMessageClient).observe$(ManifestRegistryTopics.UnregisterCapabilities)
+    Beans.get(PlatformMessageClient).observe$<ManifestObjectFilter>(ManifestRegistryTopics.UnregisterCapabilities)
       .pipe(takeUntil(this._destroy$))
-      .subscribe((request: TopicMessage<ManifestObjectFilter>) => runSafe(() => {
+      .subscribe(request => runSafe(() => {
         const replyTo = request.headers.get(MessageHeaders.ReplyTo);
         const capabilityFilter = request.body || {};
         const appSymbolicName = request.headers.get(MessageHeaders.AppSymbolicName);
@@ -185,9 +185,9 @@ export class ɵManifestRegistry implements ManifestRegistry, PreDestroy { // tsl
   }
 
   private installIntentionRegisterRequestHandler(): void {
-    Beans.get(PlatformMessageClient).observe$(ManifestRegistryTopics.RegisterIntention)
+    Beans.get(PlatformMessageClient).observe$<Intention>(ManifestRegistryTopics.RegisterIntention)
       .pipe(takeUntil(this._destroy$))
-      .subscribe((request: TopicMessage<Intention>) => runSafe(() => {
+      .subscribe(request => runSafe(() => {
         const replyTo = request.headers.get(MessageHeaders.ReplyTo);
         const intent = request.body;
         const appSymbolicName = request.headers.get(MessageHeaders.AppSymbolicName);
@@ -204,9 +204,9 @@ export class ɵManifestRegistry implements ManifestRegistry, PreDestroy { // tsl
   }
 
   private installIntentionUnregisterRequestHandler(): void {
-    Beans.get(PlatformMessageClient).observe$(ManifestRegistryTopics.UnregisterIntentions)
+    Beans.get(PlatformMessageClient).observe$<ManifestObjectFilter>(ManifestRegistryTopics.UnregisterIntentions)
       .pipe(takeUntil(this._destroy$))
-      .subscribe((request: TopicMessage<ManifestObjectFilter>) => runSafe(() => {
+      .subscribe(request => runSafe(() => {
         const replyTo = request.headers.get(MessageHeaders.ReplyTo);
         const intentFilter = request.body || {};
         const appSymbolicName = request.headers.get(MessageHeaders.AppSymbolicName);
@@ -223,9 +223,9 @@ export class ɵManifestRegistry implements ManifestRegistry, PreDestroy { // tsl
   }
 
   private installCapabilitiesLookupRequestHandler(): void {
-    Beans.get(PlatformMessageClient).observe$(ManifestRegistryTopics.LookupCapabilities)
+    Beans.get(PlatformMessageClient).observe$<ManifestObjectFilter>(ManifestRegistryTopics.LookupCapabilities)
       .pipe(takeUntil(this._destroy$))
-      .subscribe((request: TopicMessage<ManifestObjectFilter>) => runSafe(() => {
+      .subscribe(request => runSafe(() => {
         const replyTo = request.headers.get(MessageHeaders.ReplyTo);
         const appSymbolicName = request.headers.get(MessageHeaders.AppSymbolicName);
         const lookupFilter = request.body || {};
@@ -249,9 +249,9 @@ export class ɵManifestRegistry implements ManifestRegistry, PreDestroy { // tsl
   }
 
   private installIntentionsLookupRequestHandler(): void {
-    Beans.get(PlatformMessageClient).observe$(ManifestRegistryTopics.LookupIntentions)
+    Beans.get(PlatformMessageClient).observe$<ManifestObjectFilter>(ManifestRegistryTopics.LookupIntentions)
       .pipe(takeUntil(this._destroy$))
-      .subscribe((request: TopicMessage<ManifestObjectFilter>) => runSafe(() => {
+      .subscribe(request => runSafe(() => {
         const replyTo = request.headers.get(MessageHeaders.ReplyTo);
         const lookupFilter = request.body || {};
 

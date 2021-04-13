@@ -215,7 +215,7 @@ export class SciRouterOutletElement extends HTMLElement {
     this._outletName$ = new BehaviorSubject<string>(PRIMARY_OUTLET);
     this._shadowRoot = this.attachShadow({mode: 'open'});
     this._shadowRoot.innerHTML = HTML_TEMPLATE.trim();
-    this._iframe = this._shadowRoot.querySelector('iframe');
+    this._iframe = this._shadowRoot.querySelector('iframe')!;
     this._contextProvider = new RouterOutletContextProvider(this._iframe);
     this.empty$ = this._empty$.pipe(distinctUntilChanged());
   }
@@ -226,7 +226,7 @@ export class SciRouterOutletElement extends HTMLElement {
    * By giving the outlet a name, you can reference the outlet when navigating. The name is optional;
    * if not set, it defaults to {@link PRIMARY_OUTLET primary}
    */
-  public set name(name: string) {
+  public set name(name: string | null) {
     if (name) {
       this.setAttribute(ATTR_NAME, name);
     }
@@ -238,7 +238,7 @@ export class SciRouterOutletElement extends HTMLElement {
   /**
    * Returns the name of this outlet.
    */
-  public get name(): string {
+  public get name(): string | null {
     return this.getAttribute(ATTR_NAME);
   }
 
@@ -369,9 +369,9 @@ export class SciRouterOutletElement extends HTMLElement {
   private installOutletUrlListener(): void {
     this._outletName$
       .pipe(
-        switchMap(outlet => outletNavigate$(outlet).pipe(startWith(null as Navigation))), // start with a `null` navigation in case no navigation took place yet
+        switchMap(outlet => outletNavigate$(outlet).pipe(startWith(null as unknown as Navigation))), // start with a `null` navigation in case no navigation took place yet
         tap(navigation => this._empty$.next(!navigation || navigation.url === 'about:blank')),
-        distinctUntilChanged(null, navigation => navigation && navigation.url),
+        distinctUntilChanged((url1, url2) => url1 === url2, navigation => navigation?.url),
         pairwise(),
         takeUntil(this._disconnect$),
       )
@@ -392,12 +392,12 @@ export class SciRouterOutletElement extends HTMLElement {
         mapToBody(),
       )
       .subscribe((preferredSize: PreferredSize) => {
-        this.style.minWidth = preferredSize && preferredSize.minWidth || null;
-        this.style.width = preferredSize && preferredSize.width || null;
-        this.style.maxWidth = preferredSize && preferredSize.maxWidth || null;
-        this.style.minHeight = preferredSize && preferredSize.minHeight || null;
-        this.style.height = preferredSize && preferredSize.height || null;
-        this.style.maxHeight = preferredSize && preferredSize.maxHeight || null;
+        this.style.minWidth = preferredSize && preferredSize.minWidth || '0';
+        this.style.width = preferredSize && preferredSize.width || 'auto';
+        this.style.maxWidth = preferredSize && preferredSize.maxWidth || 'none';
+        this.style.minHeight = preferredSize && preferredSize.minHeight || '0';
+        this.style.height = preferredSize && preferredSize.height || 'auto';
+        this.style.maxHeight = preferredSize && preferredSize.maxHeight || 'none';
       });
   }
 
@@ -418,7 +418,7 @@ export class SciRouterOutletElement extends HTMLElement {
     Beans.get(MessageClient).observe$<KeyboardEventInit>(RouterOutlets.keyboardEventTopic(this._uid, ':eventType'))
       .pipe(takeUntil(this._disconnect$))
       .subscribe((event: TopicMessage<KeyboardEventInit>) => {
-        const type = event.params.get('eventType');
+        const type = event.params?.get('eventType')!;
         this.dispatchEvent(new KeyboardEvent(type, event.body));
       });
   }
@@ -637,8 +637,8 @@ namespace KeystrokesAttributeUtil {
     return attributeValue ? attributeValue.split(delimiter) : [];
   }
 
-  export function join(keystrokes: string[] | null): string | null {
-    return keystrokes ? keystrokes.join(delimiter) : null;
+  export function join(keystrokes: string[]): string {
+    return keystrokes.join(delimiter);
   }
 }
 

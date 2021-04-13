@@ -111,11 +111,11 @@ export class RouterOutletContextProvider {
   private installContextValueLookupListener(): void {
     this._embeddedOutletContentRequest$
       .pipe(
-        filterByTopic(Contexts.contextValueLookupTopic(':name')),
+        filterByTopic<any[]>(Contexts.contextValueLookupTopic(':name')),
         takeUntil(this._outletDisconnect$),
       )
-      .subscribe((lookupRequest: TopicMessage<any[]>) => runSafe(() => {
-        const encodedName = new TopicMatcher(Contexts.contextValueLookupTopic(':name')).match(lookupRequest.topic).params.get('name');
+      .subscribe(lookupRequest => runSafe(() => {
+        const encodedName = new TopicMatcher(Contexts.contextValueLookupTopic(':name')).match(lookupRequest.topic).params?.get('name')!;
 
         // The name has to be decoded here because it was encoded in `newContextValueLookupRequest` where the topic was created.
         const name = decodeURIComponent(encodedName);
@@ -125,7 +125,7 @@ export class RouterOutletContextProvider {
 
         if (options?.collect) {
           const collectedValues = lookupRequest.body;
-          if (entries.has(name) && entries.get(name) !== undefined) {
+          if (entries.has(name) && entries.get(name) !== undefined && collectedValues !== undefined) {
             collectedValues.push(entries.get(name));
           }
 
@@ -170,7 +170,7 @@ export class RouterOutletContextProvider {
       .subscribe((lookupRequest: TopicMessage<Set<string>>) => runSafe(() => {
         const replyTo = lookupRequest.headers.get(MessageHeaders.ReplyTo);
         const entries = this._entries$.getValue();
-        const collectedNames = new Set<string>([...entries.keys(), ...lookupRequest.body]);
+        const collectedNames = new Set<string>([...entries.keys(), ...(lookupRequest.body || [])]);
         if (Beans.get(IS_PLATFORM_HOST)) {
           // Answer the request when reaching the root of the context tree.
           Beans.get(MessageClient).publish(replyTo, collectedNames, {headers: new Map().set(MessageHeaders.Status, ResponseStatusCodes.OK)});

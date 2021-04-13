@@ -108,7 +108,7 @@ export class OutletRouter {
    * @param  options - Controls the navigation.
    * @return a Promise that resolves when navigated.
    */
-  public async navigate(url: string | null, options?: NavigationOptions): Promise<void> {
+  public async navigate(url?: string | null, options?: NavigationOptions): Promise<void> {
     const outlet = await this.resolveOutlet(options);
     const outletUrlTopic = RouterOutlets.urlTopic(outlet);
     const navigationUrl = this.computeNavigationUrl(url, options);
@@ -120,12 +120,12 @@ export class OutletRouter {
     });
   }
 
-  private computeNavigationUrl(url: string, options?: NavigationOptions): string {
+  private computeNavigationUrl(url?: string | null, options?: NavigationOptions): string {
     if (url === undefined || url === null) { // empty path is a valid url
       return 'about:blank';
     }
 
-    const params = Maps.coerce(options && options.params);
+    const params = Maps.coerce(options?.params);
     if (params.size) {
       url = this.substituteNamedParameters(url, params);
     }
@@ -133,12 +133,12 @@ export class OutletRouter {
       return url;
     }
     else {
-      const relativeTo = Defined.orElse(options && options.relativeTo, window.location.href);
+      const relativeTo = Defined.orElse(options?.relativeTo, window.location.href);
       return Beans.get(RelativePathResolver).resolve(url, {relativeTo});
     }
   }
 
-  private async resolveOutlet(options: NavigationOptions): Promise<string> {
+  private async resolveOutlet(options?: NavigationOptions): Promise<string> {
     const outlet = options && options.outlet;
     if (outlet) {
       return outlet;
@@ -167,6 +167,6 @@ export class OutletRouter {
   private substituteNamedParameters(path: string, params?: Map<string, any>): string {
     // A named parameter can be followed by another path segment (`/`), by a query param (`?` or `&`), by a matrix param (`;`)
     // or by the fragment part (`#`).
-    return path.replace(/:([^/;&?#]+)/g, (match, $1) => params.has($1) ? params.get($1) : match);
+    return path.replace(/:([^/;&?#]+)/g, (match, $1) => params?.has($1) ? params.get($1) : match);
   }
 }

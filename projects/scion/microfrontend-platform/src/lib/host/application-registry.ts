@@ -63,7 +63,7 @@ export class ApplicationRegistry {
   }
 
   public getApplication(symbolicName: string): Application {
-    return this._applications.get(symbolicName);
+    return this._applications.get(symbolicName)!;
   }
 
   public getApplications(): Application[] {
@@ -74,21 +74,21 @@ export class ApplicationRegistry {
    * Returns whether or not capability 'scope check' is disabled for the given application.
    */
   public isScopeCheckDisabled(appSymbolicName: string): boolean {
-    return this._applications.get(appSymbolicName).scopeCheckDisabled;
+    return this._applications.get(appSymbolicName)!.scopeCheckDisabled;
   }
 
   /**
    * Returns whether or not the 'Intention Registration API' is disabled for the given application.
    */
   public isIntentionRegisterApiDisabled(appSymbolicName: string): boolean {
-    return this._applications.get(appSymbolicName).intentionRegisterApiDisabled;
+    return this._applications.get(appSymbolicName)!.intentionRegisterApiDisabled;
   }
 
   /**
    * Returns whether or not 'intention check' is disabled for the given application.
    */
   public isIntentionCheckDisabled(appSymbolicName: string): boolean {
-    return this._applications.get(appSymbolicName).intentionCheckDisabled;
+    return this._applications.get(appSymbolicName)!.intentionCheckDisabled;
   }
 
   /**

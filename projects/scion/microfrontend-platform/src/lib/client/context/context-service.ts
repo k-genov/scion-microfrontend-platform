@@ -7,7 +7,7 @@
  *
  *  SPDX-License-Identifier: EPL-2.0
  */
-import { concat, EMPTY, NEVER, Observable, Observer, of, Subject, TeardownLogic } from 'rxjs';
+import { concat, EMPTY, NEVER, Observable, of, Subject, TeardownLogic } from 'rxjs';
 import { filter, map, mergeMapTo, startWith, switchMapTo, take, takeUntil } from 'rxjs/operators';
 import { UUID } from '@scion/toolkit/uuid';
 import { MessageClient } from '../messaging/message-client';
@@ -82,7 +82,7 @@ export class ContextService implements PreDestroy {
    */
   public observe$<T>(name: string, options: ContextLookupOptions & { collect: true }): Observable<T[]>;
 
-  public observe$<T>(name: string, options?: ContextLookupOptions): Observable<T | null> | Observable<T[]> {
+  public observe$<T>(name: string, options?: ContextLookupOptions): Observable<T | T[] | null> {
     if (Beans.get(IS_PLATFORM_HOST)) {
       return concat(of(options?.collect ? [] : null), NEVER);
     }
@@ -128,7 +128,7 @@ export class ContextService implements PreDestroy {
    */
   public lookup<T>(name: string, options: ContextLookupOptions & { collect: true }): Promise<T[]>;
 
-  public lookup<T>(name: string, options?: ContextLookupOptions): Promise<T | null> | Promise<T[]> {
+  public lookup<T>(name: string, options?: ContextLookupOptions): Promise<T | T[] | null> {
     return this.observe$<T>(name, options as any).pipe(take(1)).toPromise();
   }
 
@@ -169,14 +169,14 @@ export class ContextService implements PreDestroy {
    * @return An Observable that emits the context value associated with the given key and then completes.
    *         When the requested value is not found in a context, the Observable emits `null` and then completes.
    */
-  private lookupContextValue$<T>(name: string, options?: ContextLookupOptions): Observable<T | null> | Observable<T[]> {
-    return new Observable((observer: Observer<T>): TeardownLogic => {
+  private lookupContextValue$<T>(name: string, options?: ContextLookupOptions): Observable<T | T[] | null> {
+    return new Observable((observer): TeardownLogic => {
       const replyTo = UUID.randomUUID();
       const unsubscribe$ = new Subject<void>();
       const contextValueLookupRequest = Contexts.newContextValueLookupRequest(name, replyTo, options);
 
       // Wait until the reply is received.
-      Beans.get(MessageClient).observe$<T>(replyTo)
+      Beans.get(MessageClient).observe$<T | T[] | null>(replyTo)
         .pipe(
           take(1),
           map(reply => reply.headers.get(MessageHeaders.Status) === ResponseStatusCodes.OK ? reply.body : null),
@@ -199,7 +199,7 @@ export class ContextService implements PreDestroy {
    * @return An Observable that emits the names of all values registered in the current and parent contexts and then completes.
    */
   private lookupContextNames$(): Observable<Set<string>> {
-    return new Observable((observer: Observer<Set<string>>): TeardownLogic => {
+    return new Observable((observer): TeardownLogic => {
       const replyTo = UUID.randomUUID();
       const unsubscribe$ = new Subject<void>();
       const contextNamesLookupRequest = Contexts.newContextTreeNamesLookupRequest(replyTo);
@@ -208,7 +208,7 @@ export class ContextService implements PreDestroy {
       Beans.get(MessageClient).observe$<Set<string>>(replyTo)
         .pipe(
           take(1),
-          map(reply => reply.headers.get(MessageHeaders.Status) === ResponseStatusCodes.OK ? reply.body : new Set()),
+          map(reply => reply.headers.get(MessageHeaders.Status) === ResponseStatusCodes.OK ? reply.body! : new Set<string>()),
           takeUntil(unsubscribe$),
         )
         .subscribe(observer);

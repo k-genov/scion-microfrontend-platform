@@ -17,7 +17,7 @@ import { Beans } from '@scion/toolkit/bean-manager';
  *
  * @ignore
  */
-export function runSafe<T = void>(runnable: () => T): T {
+export function runSafe<T = void>(runnable: () => T): T | undefined {
   let result: T;
   try {
     result = runnable();

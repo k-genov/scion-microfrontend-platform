@@ -29,9 +29,9 @@ export class ManifestObjectStore<T extends ManifestObject> {
    * Adds the given {@link ManifestObject} to this store.
    */
   public add(object: T): void {
-    this._objectById.set(object.metadata.id, object);
+    this._objectById.set(object.metadata!.id, object);
     Maps.addListValue(this._objectsByType, object.type, object);
-    Maps.addListValue(this._objectsByApplication, object.metadata.appSymbolicName, object);
+    Maps.addListValue(this._objectsByApplication, object.metadata!.appSymbolicName, object);
     this._change$.next();
   }
 
@@ -55,17 +55,15 @@ export class ManifestObjectStore<T extends ManifestObject> {
    *        If not specifying a predicate, qualifiers will be matched against the specified qualifier filter, supporting
    *        the asterisk wildcard, but not the optional wildcard character.
    */
-  public find(filter: ManifestObjectFilter, qualifierPredicate?: (testee: Qualifier) => boolean): T[] {
-    const filterById = filter.id !== undefined;
-    const filterByType = filter.type !== undefined;
-    const filterByApp = filter.appSymbolicName !== undefined;
+  public find(filter: ManifestObjectFilter, qualifierPredicate?: (testee?: Qualifier) => boolean): T[] {
+    const hasFilter = filter.id !== undefined || filter.type !== undefined || filter.appSymbolicName !== undefined;
 
     return Arrays
       .intersect(
-        filterById ? Arrays.coerce(this._objectById.get(filter.id)) : undefined,
-        filterByType ? Arrays.coerce(this._objectsByType.get(filter.type)) : undefined,
-        filterByApp ? Arrays.coerce(this._objectsByApplication.get(filter.appSymbolicName)) : undefined,
-        (filterById || filterByType || filterByApp) ? undefined : Array.from(this._objectById.values()),
+        filter.id !== undefined ? Arrays.coerce(this._objectById.get(filter.id)) : undefined,
+        filter.type !== undefined ? Arrays.coerce(this._objectsByType.get(filter.type)) : undefined,
+        filter.appSymbolicName !== undefined ? Arrays.coerce(this._objectsByApplication.get(filter.appSymbolicName)) : undefined,
+        hasFilter ? undefined : Array.from(this._objectById.values()),
       )
       .filter(object => {
         if (filter.qualifier === undefined) {
@@ -92,9 +90,10 @@ export class ManifestObjectStore<T extends ManifestObject> {
   private _remove(objects: T[]): void {
     let deleted = false;
     objects.forEach(object => {
-      deleted = this._objectById.delete(object.metadata.id) || deleted;
-      deleted = Maps.removeListValue(this._objectsByType, object.type, candidate => candidate.metadata.id === object.metadata.id) || deleted;
-      deleted = Maps.removeListValue(this._objectsByApplication, object.metadata.appSymbolicName, candidate => candidate.metadata.id === object.metadata.id) || deleted;
+      const objectId = object.metadata!.id;
+      deleted = this._objectById.delete(objectId) || deleted;
+      deleted = Maps.removeListValue(this._objectsByType, object.type, candidate => candidate.metadata?.id === objectId) || deleted;
+      deleted = Maps.removeListValue(this._objectsByApplication, object.metadata!.appSymbolicName, candidate => candidate.metadata?.id === objectId) || deleted;
     });
     deleted && this._change$.next();
   }

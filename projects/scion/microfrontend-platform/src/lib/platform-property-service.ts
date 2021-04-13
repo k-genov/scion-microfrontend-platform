@@ -67,7 +67,7 @@ export class PlatformPropertyService implements PreDestroy {
   }
 
   private async loadProperties(): Promise<void> {
-    this._properties = await Beans.get(MessageClient).observe$(PlatformTopics.PlatformProperties)
+    this._properties = await Beans.get(MessageClient).observe$<{[key: string]: any}>(PlatformTopics.PlatformProperties)
       .pipe(
         mapToBody(),
         map(properties => Maps.coerce(properties)),
